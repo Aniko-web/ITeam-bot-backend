@@ -1,23 +1,37 @@
 import os
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        case_sensitive=False
+    )
+
     PROJECT_NAME: str = "MLBB Esports TMA & Bot Platform"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
-    # Telegram Bot
-    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "9064445555:AAF4Nm0YzZK6ykRPJbLv_MuFOkPtTNwsxQ8")
-    TELEGRAM_BOT_USERNAME: str = os.getenv("TELEGRAM_BOT_USERNAME", "YourMlbbBot")
-    TMA_WEBAPP_URL: str = os.getenv("TMA_WEBAPP_URL", "https://mlbb-esports.telegram.app")
+    # Server Port / Host (Alwaysdata or VPS)
+    PORT: int = 8000
+    HOST: str = "0.0.0.0"
     
-    # Database (Default async SQLite for immediate zero-config local runs, asyncpg for PostgreSQL)
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./mlbb_platform.db")
+    # Telegram Bot
+    TELEGRAM_BOT_TOKEN: str = "9064445555:AAF4Nm0YzZK6ykRPJbLv_MuFOkPtTNwsxQ8"
+    TELEGRAM_BOT_USERNAME: str = "YourMlbbBot"
+    TMA_WEBAPP_URL: str = "https://mlbb-esports.telegram.app"
+    BACKEND_API_URL: str = "http://localhost:8000/api/v1"
+    
+    # Database (Default async SQLite for immediate zero-config runs, asyncpg for PostgreSQL)
+    DATABASE_URL: str = "sqlite+aiosqlite:///./mlbb_platform.db"
+    POSTGRES_USER: Optional[str] = "mlbb_user"
+    POSTGRES_PASSWORD: Optional[str] = None
+    POSTGRES_DB: Optional[str] = "mlbb_esports"
     
     # Redis
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     # CORS (Supports comma-separated URLs or JSON lists)
     CORS_ORIGINS: Union[List[str], str] = [
@@ -48,9 +62,5 @@ class Settings(BaseSettings):
     # Ready Check Parameters
     READY_CHECK_WINDOW_SECONDS: int = 300  # 5 minutes confirmation window
     PENALTY_KARMA_UNREADY: int = 5
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 settings = Settings()
