@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -15,12 +16,36 @@ from app.api.pvp import router as pvp_router
 from app.api.economy import router as economy_router
 from app.services.ready_check_scheduler import start_ready_check_scheduler
 
+logger = logging.getLogger("MAIN")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize DB tables if SQLite / dev mode
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    # Initialize Redis connection
+    # Startup: Initialize DB tables with automatic SQLite fallback
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.warning(f"Could not connect to configured DATABASE_URL: {e}")
+        if not settings.DATABASE_URL.startswith("sqlite"):
+            logger.info("Automatically falling back to embedded SQLite database (mlbb_platform.db)...")
+            from app.core import database
+            from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+            database.engine = create_async_engine(
+                "sqlite+aiosqlite:///./mlbb_platform.db",
+                echo=False,
+                future=True,
+                connect_args={"check_same_thread": False}
+            )
+            database.AsyncSessionLocal = async_sessionmaker(
+                bind=database.engine,
+                class_=AsyncSession,
+                expire_on_commit=False,
+                autoflush=False
+            )
+            async with database.engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+
+    # Initialize Redis connection (falls back to in-memory cache if offline)
     await redis_manager.init()
     # Launch background ready check monitor task
     scheduler_task = asyncio.create_task(start_ready_check_scheduler())
