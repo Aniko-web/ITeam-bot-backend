@@ -39,13 +39,10 @@ app = FastAPI(
 )
 
 # CORS Middleware (Multi-Server & Telegram Webview support)
-cors_env = os.getenv("CORS_ORIGINS", "*")
-allowed_origins = [o.strip() for o in cors_env.split(",") if o.strip()] if cors_env != "*" else ["*"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if cors_env != "*" else ["*"],
-    allow_origin_regex=r"^https?://.*" if cors_env == "*" else None,
+    allow_origins=settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"],
+    allow_origin_regex=r"^https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
