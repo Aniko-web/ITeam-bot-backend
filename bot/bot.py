@@ -19,9 +19,12 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 try:
-    from bot.i18n import t
-except ImportError:
     from i18n import t  # type: ignore
+except (ImportError, ModuleNotFoundError):
+    try:
+        from bot.i18n import t  # type: ignore
+    except (ImportError, ModuleNotFoundError):
+        from .i18n import t  # type: ignore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("MLBB_BOT")
