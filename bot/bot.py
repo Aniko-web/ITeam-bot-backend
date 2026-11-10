@@ -1,6 +1,9 @@
 import asyncio
 import logging
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 import httpx
 from typing import Dict
 from aiogram import Bot, Dispatcher, types, F
