@@ -1,16 +1,27 @@
 import asyncio
 import logging
 import os
+import sys
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Ensure backend root is in sys.path so 'bot' and 'app' packages resolve anywhere
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 import httpx
 from typing import Dict
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
-from bot.i18n import t
+try:
+    from bot.i18n import t
+except ImportError:
+    from i18n import t  # type: ignore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("MLBB_BOT")
