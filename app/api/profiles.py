@@ -50,39 +50,47 @@ async def lookup_mlbb_nickname(
             "source": "verified_database"
         }
 
-    # Attempt live gateway query (e.g., standard MLBB lookup endpoint)
-    try:
-        url = "https://api.mobilelegends.com/v1/user/lookup"  # or Codashop gateway
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.post(url, json={"userId": clean_id, "zoneId": clean_zone})
-            if resp.status_code == 200:
-                data = resp.json()
-                if "username" in data or "nickname" in data:
-                    return {
-                        "status": "success",
-                        "nickname": data.get("username") or data.get("nickname"),
-                        "mlbb_id": clean_id,
-                        "server_id": clean_zone,
-                        "is_verified": True,
-                        "source": "moonton_gateway"
-                    }
-    except Exception:
-        pass
+    # Attempt live gateway queries via real MLBB lookup services
+    gateways = [
+        f"https://api.isan.eu.org/nickname/ml?id={clean_id}&zone={clean_zone}",
+        f"https://api.isan.eu.org/nickname/ml?id={clean_id}&server={clean_zone}",
+    ]
 
-    # Deterministic gamer nickname generator for test IDs
-    import hashlib
-    h = int(hashlib.md5(f"{clean_id}:{clean_zone}".encode()).hexdigest(), 16)
-    prefixes = ["Pro", "Alpha", "Shadow", "Mythic", "Legend", "Ghost", "Neo", "Iron", "Viper", "Savage"]
-    suffixes = ["Slayer", "Beast", "Master", "Carry", "Striker", "Storm", "King", "Lord", "Sniper", "Ace"]
-    gen_nick = f"{prefixes[h % len(prefixes)]}{suffixes[(h // 10) % len(suffixes)]}_{clean_id[-3:]}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+    }
 
+    async with httpx.AsyncClient(timeout=5.0, headers=headers) as client:
+        for gw_url in gateways:
+            try:
+                resp = await client.get(gw_url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # isan returns {"success": true, "name": "...", ...}
+                    found_name = data.get("name") or data.get("username") or data.get("nickname")
+                    if found_name and str(found_name).strip():
+                        return {
+                            "status": "success",
+                            "nickname": str(found_name).strip(),
+                            "mlbb_id": clean_id,
+                            "server_id": clean_zone,
+                            "is_verified": True,
+                            "source": "live_gateway"
+                        }
+            except Exception as e:
+                logger.warning(f"MLBB lookup gateway {gw_url} failed: {e}")
+                continue
+
+    # If live lookup could not find it, do not force a synthetic fake name
     return {
-        "status": "success",
-        "nickname": gen_nick,
+        "status": "not_found",
+        "nickname": None,
+        "message": "ID orqali nickname topilmadi. O'z nicknamengizni to'g'ridan-to'g'ri kiritishingiz mumkin.",
         "mlbb_id": clean_id,
         "server_id": clean_zone,
-        "is_verified": True,
-        "source": "mlbb_id_resolver"
+        "is_verified": False,
+        "source": "manual_entry_required"
     }
 
 @router.put("/me", response_model=UserResponse)
