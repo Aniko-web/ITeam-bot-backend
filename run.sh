@@ -18,3 +18,4 @@ HOST_PORT="${PORT:-8000}"
 
 echo "Starting ITeam FastAPI backend on $HOST_IP:$HOST_PORT..."
 exec python3 -m uvicorn app.main:app --host "$HOST_IP" --port "$HOST_PORT"
+

@@ -13,3 +13,4 @@ fi
 
 echo "Starting ITeam Telegram Bot daemon..."
 exec python3 -m bot.bot
+
